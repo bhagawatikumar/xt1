@@ -1,6 +1,4 @@
 <?php
-
-error_reporting(E_ALL);
 /**
  * User Class File
  * @package       app
@@ -14,10 +12,10 @@ error_reporting(E_ALL);
  *
  * @author Bhagawati Kumar[bhagawatikumar(At)gmail(dot)com]
  */
+require_once 'Constants.php';
 class User {
 
-    public static $usersArray = array();              //For Storing Static Users Array | array('Username' => 'Password')
-
+    public static $usersArray;              //For Storing Static Users Array | array('Username' => 'Password')
     public function setUsers($userArray = array()) {
         if (!empty($userArray) && count($userArray) > 0) {
             self::$usersArray = $userArray;
@@ -36,7 +34,7 @@ class User {
     }
 
     public function validate($username, $password) {
-        if ($username && $password) {
+        if ($username) {           
             $allUsers = $this->getUsers();
             if (array_key_exists($username, $allUsers) && $allUsers[$username] === $password) {
                     return TRUE;

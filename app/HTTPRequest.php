@@ -1,90 +1,74 @@
 <?php
-
+require_once 'Constants.php';
 /**
  * All Http requests
  *
- * @author BK
+ * @author Bhagawati Kumar[bhagawatikumar(At)gmail(dot)com]
  */
-
 class HTTPRequest {
 
-    public $defaultRequestURL = "http://localhost/api/test.php";
-    public $defaultRequestMethod = "GET";
-    public function __construct() {
-
+    public $requestURL;
+    public $requestMethod;
+    public $username;
+    public $password;
+    
+    public function setUrl($url){
+        $this->requestURL = $url;
+    }
+    public function setMethod($method){
+        $this->requestMethod = $method;
+    }
+    public function setUsername($username){
+        $this->username = $username;
+    }
+    public function setPassword($password){
+        $this->password = $password;
     }
 
-    /**
+        /**
      * 
-     * @param type $options => url : URL to hit
-     *                         method : Request Method like POST|GET| 
-     *                         data : Array of variables to be passed
+     * @param type $options => data : Array of variables to be passed eg. array('key_name' => 'value','key_name2' => 'value2' ...)
      * @return FASLE if error|returns data respose from http request
      */
-    public function httpRequest($options = array()) {
-        if (!empty($options)) {
-            extract($options);
-            if (!isset($url)) {
-                $url = $this->defaultRequestURL;
-            }
-            if (!isset($method)) {
-                $method = $this->defaultRequestMethod;
-            }
-
-            if ($method == 'POST') {
-                if (!isset($data) || !is_array($data) || empty($data)) {
-                    return false;
+    public function request($data = array()) {
+        if (!empty($data)) {
+            $tmpUrl = '';                                           //Temp URL Generation 
+            if ($this->requestMethod == 'GET') {
+                if (!strpos($this->requestURL, '?')) {
+                    $tmpUrl = '?';
                 }
-            } else if ($method == 'GET') {
-                if (!isset($data) || !is_array($data) || empty($data)) {
-                    return false;
-                }
-
-                if (strpos($url, '?')) {
-                    $tmp = '&';
-                } else {
-                    $tmp = '?';
-                }
-                $i = 0;
                 foreach ($data as $key => $d) {
-                    if ($i === 0) {
-                        $tmp .= $key . "=" . rawurlencode($d);
-                    } else {
-                        $tmp .= '&' . $key . "=" . rawurlencode($d);
+                    if ($tmpUrl == '') {
+                        $tmpUrl .= '&';
                     }
-                    $i++;
+                    $tmpUrl .= $key . "=" . rawurlencode($d);
                 }
-                $url .= $tmp;
+                $this->requestURL .= $tmpUrl;
             }
-            $ch = curl_init();
-            if ($url == '') {
-                $url = $this->defaultRequestURL;
-            }
-//            pr($url);
-            curl_setopt($ch, CURLOPT_URL, $url);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-            if (is_array($data) && !empty($data) && $method == 'POST') {
-                curl_setopt($ch, CURLOPT_POST, 1);
-                curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-            }
-            $logOpt['method'] = $method;
-            $logOpt['url'] = $url;
-            $logOpt['data'] = implode('|', $data);
-            $output = curl_exec($ch);
-            if (!$output) {
-                $err = curl_error($ch);
-                $logOpt['error'] = $err;
-                $output = 'err';
-//                echo $err;
-//                exit;
-            }
-//            pr($logOpt);
-//           $this->ObjLog->log($logOpt);
-            curl_close($ch);
-            return $output;
-        } else {
-            return false;
         }
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $this->requestURL);
+        curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_BASIC ); 
+        curl_setopt($ch, CURLOPT_USERPWD, "$this->username:$this->password");
+        curl_setopt($ch, CURLOPT_HEADER, true);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_USERAGENT, $this->username);
+        if (!empty($data) && $this->requestMethod == 'POST') {
+            curl_setopt($ch, CURLOPT_POST, 1);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+        }
+        $output = curl_exec($ch);
+        $header_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $header_size = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+        $body = substr($output, $header_size);
+        if (!$output) {
+            pr(curl_error($ch));
+            return FALSE;
+        }
+        curl_close($ch);
+        $response['code'] = $header_code;
+        $response['body'] = json_decode($body,TRUE);
+        return $response;
     }
 
 }
